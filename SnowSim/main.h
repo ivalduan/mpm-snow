@@ -1,21 +1,32 @@
 #ifndef MAIN_H
 #define	MAIN_H
 
-#include "glfw3/glfw3.h"
-#include "freeimage/FreeImage.h"
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
+#include <thread>
 #include <time.h>
+#ifndef _WIN32
 #include <unistd.h>
-#include <sys/stat.h>
+#endif
 #include <math.h>
 #include "Particle.h"
 #include "PointCloud.h"
 #include "Grid.h"
 #include "SimConstants.h"
 #include "Shape.h"
+
+#if SCREENCAST
+#include <stb_image_write.h>
+#ifdef _WIN32
+#include <direct.h>
+#define snow_mkdir(dir) _mkdir(dir)
+#else
+#include <sys/stat.h>
+#define snow_mkdir(dir) mkdir((dir), 0777)
+#endif
+#endif
 
 float TIMESTEP;
 

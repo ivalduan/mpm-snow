@@ -1,3 +1,11 @@
 /SnowSim/build/
 /SnowSim/dist/
 *.o
+
+# CMake / Conan
+/SnowSim/CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+
+# Generated screencast frames / video
+/screencast/

@@ -2,6 +2,7 @@
 #define	GRID_H
 
 #include <math.h>
+#include <cmath>
 #include <cstring>
 #include <stdio.h>
 #include "PointCloud.h"
@@ -16,7 +17,7 @@ typedef struct GridNode{
 	float mass;
 	bool active;
 	Vector2f velocity, velocity_new;
-	
+
 #if ENABLE_IMPLICIT
 	//All the following variables are used by the implicit linear solver
 	bool imp_active;	//are we still solving for vf
@@ -32,12 +33,12 @@ typedef struct GridNode{
 class Grid {
 public:
 	Vector2f origin, size, cellsize;
-	PointCloud* obj;	
+	PointCloud* obj;
 	float node_area;
 	//Nodes: use (y*size[0] + x) to index, where zero is the bottom-left corner (e.g. like a cartesian grid)
 	int nodes_length;
 	GridNode* nodes;
-	
+
 	//Grid be at least one cell; there must be one layer of cells surrounding all particles
 	Grid(Vector2f pos, Vector2f dims, Vector2f cells, PointCloud* obj);
 	Grid(const Grid& orig);
@@ -56,11 +57,11 @@ public:
 #endif
 	//Map grid velocities back to particles
 	void updateVelocities() const;
-	
+
 	//Collision detection
 	void collisionGrid();
 	void collisionParticles() const;
-	
+
 	//Cubic B-spline shape/basis/interpolation function
 	//A smooth curve from (0,1) to (1,0)
 	static float bspline(float x){
@@ -80,7 +81,7 @@ public:
 		float abs_x = fabs(x), w;
 		if (abs_x < 1)
 			return 1.5*x*abs_x - 2*x;
-		else if (x < 2)
+		else if (abs_x < 2)
 			return -x*abs_x/2 + 2*x - 2*x/abs_x;
 		else return 0;
 		//Clamp between -2/3 and 2/3... if needed

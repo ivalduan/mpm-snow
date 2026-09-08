@@ -24,7 +24,7 @@ Grid* grid;
 
 int main(int argc, char** argv){
 	srand(time(NULL));
-	
+
 	//Create GLFW window
 	GLFWwindow* window;
 	glfwSetErrorCallback(error_callback);
@@ -38,11 +38,11 @@ int main(int argc, char** argv){
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetMouseButtonCallback(window, mouse_callback);
-	
+
 	//Center window on screen
 	const GLFWvidmode* monitor = glfwGetVideoMode(glfwGetPrimaryMonitor());
 	glfwSetWindowPos(window, (monitor->width-WIN_SIZE)/2, (monitor->height-WIN_SIZE)/2);
-	
+
 	//Setup OpenGL context
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -50,15 +50,15 @@ int main(int argc, char** argv){
 	glLoadIdentity();
 	glViewport(0, 0, WIN_SIZE, WIN_SIZE);
 	glOrtho(0, WIN_METERS, 0, WIN_METERS, 0, 1);
-	
+
 	//Drawing & event loop
 	//Create directory to save buffers in
 #if SCREENCAST
-	mkdir(SCREENCAST_DIR,0777);
-	FreeImage_Initialise();
+	snow_mkdir(SCREENCAST_DIR);
+	stbi_flip_vertically_on_write(1); // glReadPixels returns bottom-up rows
 	img_buffer = new unsigned char[bsize];
 #endif
-	
+
 	/*
 	Shape* snowball = new Shape();
 	const int segments = 18;
@@ -81,8 +81,11 @@ int main(int argc, char** argv){
 	snow_shapes.push_back(snowball);
 	start_simulation();
 	//*/
-	//start_simulation();
-	
+
+	// snow_shapes.push_back(generateSnowball(Vector2f(1.1,1.1), .27));
+    // snow = PointCloud::createShape(snow_shapes, Vector2f(10, 10));
+	start_simulation();
+
 	while (!glfwWindowShouldClose(window)){
 		if (dirty_buffer){
 			redraw();
@@ -98,10 +101,9 @@ int main(int argc, char** argv){
 
 	//Exit
 #if SCREENCAST
-	FreeImage_DeInitialise();
 	delete[] img_buffer;
 #endif
-	
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
@@ -113,16 +115,16 @@ int main(int argc, char** argv){
 	glLoadIdentity();
 	glViewport(0, 0, WIN_SIZE, WIN_SIZE);
 	glOrtho(0, WIN_METERS, 0, WIN_METERS, 0, 1);
-	
+
 	//Drawing & event loop
 	//Create directory to save buffers in
 #if SCREENCAST
-	mkdir(SCREENCAST_DIR,0777);
-	FreeImage_Initialise();
+	snow_mkdir(SCREENCAST_DIR);
+	stbi_flip_vertically_on_write(1); // glReadPixels returns bottom-up rows
 	img_buffer = new unsigned char[bsize];
 #endif
 	start_simulation();
-	
+
 	while (!glfwWindowShouldClose(window)){
 		if (dirty_buffer){
 			redraw();
@@ -138,10 +140,9 @@ int main(int argc, char** argv){
 
 	//Exit
 #if SCREENCAST
-	FreeImage_DeInitialise();
 	delete[] img_buffer;
 #endif
-	
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
@@ -243,47 +244,48 @@ void remove_all_shapes(){
 //Simulation
 //float TIMESTEP;
 void start_simulation(){
-	/* Multiple snow shapes
-	snow_shapes.push_back(generateSnowball(Vector2f(1.1,1.1), .27));
-	snow = PointCloud::createShape(snow_shapes, Vector2f(10, 10));
+	//Multiple snow shapes
+	snow_shapes.push_back(generateSnowball(Vector2f(1.7,1.7), .15));
+	snow = PointCloud::createShape(snow_shapes, Vector2f(-2, -2));
 	remove_all_shapes();
-	snow_shapes.push_back(generateSnowball(Vector2f(1.1,.9), .25));
-	PointCloud* snow2 = PointCloud::createShape(snow_shapes, Vector2f(11, -2));
+	snow_shapes.push_back(generateSnowball(Vector2f(1.7,.3), .2));
+	PointCloud* snow2 = PointCloud::createShape(snow_shapes, Vector2f(-3, 3));
 	remove_all_shapes();
-	snow_shapes.push_back(generateSnowball(Vector2f(.87,1.05), .28));
-	PointCloud* snow3 = PointCloud::createShape(snow_shapes, Vector2f(-11, 5));
+	snow_shapes.push_back(generateSnowball(Vector2f(.37,1.75), .2));
+	PointCloud* snow3 = PointCloud::createShape(snow_shapes, Vector2f(3, -2));
 	snow->merge(*snow2);
 	snow->merge(*snow3);
-	*/
+
 	//Convert drawn shapes to snow particles
-	snow = PointCloud::createShape(snow_shapes, Vector2f(2, 0));
+	//snow = PointCloud::createShape(snow_shapes, Vector2f(2, 0));
 	//If there are no shapes, we can't do a simulation
 	if (snow == NULL) return;
 	point_size = 6;
-	
+
 	//Computational grid
-	grid = new Grid(Vector2f(0), Vector2f(WIN_METERS, WIN_METERS), Vector2f(64), snow);
+	grid = new Grid(Vector2f(0), Vector2f(WIN_METERS, WIN_METERS), Vector2f(128), snow);
 	//We need to estimate particle volumes before we start
-	grid->initializeMass();	
+	grid->initializeMass();
 	grid->calculateVolumes();
-	
-	pthread_t sim_thread;
-	pthread_create(&sim_thread, NULL, simulate, NULL);
+
+	std::thread(simulate, (void*)NULL).detach();
 }
 void *simulate(void *args){
 	simulating = true;
+#if REALTIME
 	struct timespec delay;
 	delay.tv_sec = 0;
+#endif
 	clock_t start = clock(), end;
 	cout << "Starting simulation..." << endl;
 	Vector2f gravity = Vector2f(0, GRAVITY);
-	
+
 	float cum_sum = 0;
 	int iter = 0;
 	while (simulating && ++iter > 0){
 		TIMESTEP = adaptive_timestep();
 		cum_sum += TIMESTEP;
-		
+
 		//Initialize FEM grid
 		grid->initializeMass();
 		grid->initializeVelocities();
@@ -297,7 +299,7 @@ void *simulate(void *args){
 		grid->updateVelocities();
 		//Update particle data
 		snow->update();
-		
+
 		//Redraw snow
 		if (!LIMIT_FPS || cum_sum >= FRAMERATE){
 			dirty_buffer = true;
@@ -320,7 +322,7 @@ void *simulate(void *args){
 
 	cout << "Simulation complete: " << (clock()-start)/(float) CLOCKS_PER_SEC << " seconds\n" << endl;
 	simulating = false;
-	pthread_exit(NULL);
+	return NULL;
 }
 float adaptive_timestep(){
 	float max_vel = snow->max_velocity, f;
@@ -336,7 +338,7 @@ float adaptive_timestep(){
 void redraw(){
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
-	
+
 	if (simulating){
 		//Grid nodes
                 /*
@@ -384,26 +386,21 @@ void redraw(){
 void save_buffer(int time){
 	FILE *file;
 	char fname[32];
-	
+
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	sprintf(fname, "%st_%04d.png", SCREENCAST_DIR, time);
 	printf("%s\n", fname);
-	
-	//Copy the image to buffer
+
+	//Copy the image to buffer (RGB so the byte order matches the PNG directly)
 	glReadBuffer(GL_BACK_LEFT);
-	glReadPixels(0, 0, WIN_SIZE, WIN_SIZE, GL_BGR, GL_UNSIGNED_BYTE, img_buffer);
-	FIBITMAP* img = FreeImage_ConvertFromRawBits(
-		img_buffer, WIN_SIZE, WIN_SIZE, 3*WIN_SIZE,
-		24, 0xFF0000, 0x00FF00, 0x0000FF, false
-	);
-	FreeImage_Save(FIF_PNG, img, fname, 0);
-	FreeImage_Unload(img);
+	glReadPixels(0, 0, WIN_SIZE, WIN_SIZE, GL_RGB, GL_UNSIGNED_BYTE, img_buffer);
+	stbi_write_png(fname, WIN_SIZE, WIN_SIZE, 3, img_buffer, 3*WIN_SIZE);
 }
 #endif
 
 Shape* generateSnowball(Vector2f origin, float radius){
 	Shape* snowball = new Shape();
-	const int segments = 18;
+	const int segments = 8;
 	//Cool circle algorithm: http://slabode.exofire.net/circle_draw.shtml
 	float theta = 6.283185307 / (float) segments,
 		tan_fac = tan(theta),

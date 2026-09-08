@@ -20,7 +20,7 @@ void Grid::initializeMass(){
 	//If the grid is sparsely filled, it may be better to reset individual nodes
 	//Also, not all these variables need to be zeroed, so... yeah
 	memset(nodes, 0, sizeof(GridNode)*nodes_length);
-	
+
 	//Map particle data to grid
 	for (int i=0; i<obj->size; i++){
 		Particle& p = obj->particles[i];
@@ -28,8 +28,8 @@ void Grid::initializeMass(){
 		//This will give errors if the particle is outside the grid bounds
 		p.grid_position = (p.position - origin)/cellsize;
 		float ox = p.grid_position[0], oy = p.grid_position[1];
-		
-		
+
+
 		//Shape function gives a blending radius of two;
 		//so we do computations within a 2x2 square for each particle
 		for (int idx=0, y=oy-1, y_end=y+3; y<=y_end; y++){
@@ -37,22 +37,21 @@ void Grid::initializeMass(){
 			float y_pos = oy-y,
 				wy = Grid::bspline(y_pos),
 				dy = Grid::bsplineSlope(y_pos);
-			
+
 			for (int x=ox-1, x_end=x+3; x<=x_end; x++, idx++){
 				//X-dimension interpolation
 				float x_pos = ox-x,
 					wx = Grid::bspline(x_pos),
 					dx = Grid::bsplineSlope(x_pos);
-				
+
 				//Final weight is dyadic product of weights in each dimension
 				float weight = wx*wy;
 				p.weights[idx] = weight;
-				
+
 				//Weight gradient is a vector of partial derivatives
-				p.weight_gradient[idx].setData(dx*wy, wx*dy);				
-				//I don't know why we need to do this... JT did it, doesn't appear in tech paper
+				p.weight_gradient[idx].setData(dx*wy, wx*dy);
 				p.weight_gradient[idx] /= cellsize;
-				
+
 				//Interpolate mass
 				nodes[(int) (y*size[0]+x)].mass += weight*p.mass;
 			}
@@ -130,7 +129,7 @@ void Grid::explicitVelocities(const Vector2f& gravity){
 			}
 		}
 	}
-	
+
 	//Now we have all grid forces, compute velocities (euler integration)
 	for (int i=0; i<nodes_length; i++){
 		GridNode &node = nodes[i];
@@ -153,7 +152,7 @@ void Grid::implicitVelocities(){
 	//method (conjugate residuals) to find what vf should be. We make an
 	//initial guess of what vf should be (setting it to v*) and then
 	//iteratively refine our guess until the error is small enough.
-	
+
 	//INITIALIZE LINEAR SOLVE
 	for (int idx=0; idx<nodes_length; idx++){
 		GridNode& n = nodes[idx];
@@ -186,7 +185,7 @@ void Grid::implicitVelocities(){
 		if (n.imp_active)
 			n.Ep = n.Er;
 	}
-	
+
 	//LINEAR SOLVE
 	for (int i=0; i<MAX_IMPLICIT_ITERS; i++){
 		bool done = true;
@@ -201,7 +200,7 @@ void Grid::implicitVelocities(){
 				n.err = alpha*n.p;
 				//If the error is small enough, we're done
 				float err = n.err.length();
-				if (err < MAX_IMPLICIT_ERR || err > MIN_IMPLICIT_ERR || isnan(err)){
+				if (err < MAX_IMPLICIT_ERR || err > MIN_IMPLICIT_ERR || std::isnan(err)){
 					n.imp_active = false;
 					continue;
 				}
@@ -248,7 +247,7 @@ void Grid::recomputeImplicitForces(){
 			}
 		}
 	}
-	
+
 	//We have delta force for each node; to get Er, we use the following formula:
 	//	r - IMPLICIT_RATIO*TIMESTEP*delta_force/mass
 	for (int idx=0; idx<nodes_length; idx++){
@@ -271,7 +270,7 @@ void Grid::updateVelocities() const{
 		//VISUALIZATION PURPOSES ONLY:
 		//Recompute density
 		p.density = 0;
-		
+
 		int ox = p.grid_position[0],
 			oy = p.grid_position[1];
 		for (int idx=0, y=oy-1, y_end=y+3; y<=y_end; y++){

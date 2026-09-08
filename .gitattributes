@@ -1,0 +1,36 @@
+# Normalize all text files: store LF in the repo, check out native on each OS.
+# Git auto-detects text vs binary for anything not listed explicitly below.
+* text=auto
+
+# --- Source / text formats -------------------------------------------------
+*.c      text
+*.cpp    text
+*.h      text
+*.inc    text
+*.py     text
+*.md     text
+*.txt    text
+*.cmake  text
+CMakeLists.txt text
+
+# --- Line-ending-sensitive files ----------------------------------------------
+*.sh     text eol=lf
+*.ps1    text eol=crlf
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+
+# --- Binary files (never modified, never diffed as text) ---------------------
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.mp4    binary
+*.pdf    binary
+*.a      binary
+*.lib    binary
+*.dll    binary
+*.so     binary
+*.dylib  binary
+*.otl    binary
+*.hipnc  binary

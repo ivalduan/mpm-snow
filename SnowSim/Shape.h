@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <math.h>
-#include "glfw3/glfw3.h"
+#include <GLFW/glfw3.h>
 #include "Vector2f.h"
 
 class Shape {

@@ -22,13 +22,13 @@ public:
 	PointCloud(int cloud_size);
 	PointCloud(const PointCloud& orig);
 	virtual ~PointCloud();
-	
+
 	//Transform points in cloud
 	void scale(Vector2f origin, Vector2f scale);
 	void translate(Vector2f off);
 	//Update particle data
 	void update();
-	
+
 	//Merge two point clouds
 	void merge(const PointCloud& other);
 	//Get bounding box [xmin, xmax, ymin, ymax]
@@ -49,11 +49,11 @@ public:
 		//If there is no volume, we can't really do a snow sim
 		if (area < AREA_EPSILON)
 			return NULL;
-		
+
 		//Lame parameters
 		float lambda = YOUNGS_MODULUS*POISSONS_RATIO/((1+POISSONS_RATIO)*(1-2*POISSONS_RATIO)),
 			mu = YOUNGS_MODULUS/(2+2*POISSONS_RATIO);
-		
+
 		//Otherwise, create our object
 		//Calculate particle settings
 		float particle_area = PARTICLE_DIAM*PARTICLE_DIAM,
@@ -73,14 +73,14 @@ public:
 				//Last shape gets remainder, so we don't have round-off errors
 				else points = particles-total_points;
 				total_points += points;
-				
+
 				//Estimate the centroid of the shape with the bounds
 				snow_shapes[i]->bounds(bounds);
 				float cx = (bounds[0]+bounds[1])/2.0,
 					cy = (bounds[2]+bounds[3])/2.0,
 					cw = bounds[1] - cx,
 					ch = bounds[3] - cy;
-				
+
 				//Randomly scatter points in the shape until the quota is met
 				int points_found = 0;
 				srand(5);
@@ -96,7 +96,7 @@ public:
 						//Add the snow particle
 						obj->particles.push_back(Particle(
 							Vector2f(tx, ty), Vector2f(velocity), particle_mass, lambda, mu
-						));						
+						));
 						points_found++;
 					}
 				}
@@ -104,10 +104,9 @@ public:
 		}
 		//Set initial max velocity
 		obj->max_velocity = velocity.length_squared();
-		
+
 		return obj;
 	}
 };
 
 #endif
-
